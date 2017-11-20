@@ -47,8 +47,6 @@ matrix:
       language: generic
       env:
         - PYTHON=2.7.14
-  allow_failures:
-    - os: osx
 
 before_install: |
   # macOSX CI environment configuration: https://pythonhosted.org/CodeChat/.travis.yml.html
