@@ -469,7 +469,10 @@ class Test(Worker):
 
     _verboseFull=False
 
-    def __init__(self, targetClass, extraOptions={}):
+    def __init__(self, targetClass, **options):
+
+        # extract options
+        extraOptions = options.get('extraOptions',  {})
 
         # by default, enable verbosity for issues and isolate problems
         self.cbStatus=self.printStatus
@@ -560,11 +563,11 @@ class Test(Worker):
         }
 
         # call parent initialization with Test-specific options
-        super(self.__class__, self).__init__(
+        super(Test, self).__init__(
             targetClass, targetOptionMethod='_getTest',
             runnerDefaults=defaults, extraOptions=extraOptions)
 
-    def _run(self, name, options):
+    def _runTest(self, name, options):
 
         # build list of tests as complete permutation of parameter variations
         tests=uniqueNameDict({})
@@ -593,7 +596,7 @@ class Test(Worker):
         # allow a second level of Permutation for VariantPermutation instances
         # determine variants of target and generate variant description tag name
         lstVariantPermutations=[name for name, value in options.items()
-                                if type(value) == VariantPermutation]
+                                if isinstance(value, VariantPermutation)]
         descrVariants=','.join(lstVariantPermutations)
 
         # determine field lengths for nice printing of columns
@@ -636,6 +639,26 @@ class Test(Worker):
                 }
 
             self.emitStatus(nameTest, resultTest, lenName, descrVariants)
+
+        return resultTarget
+
+    def _run(self, name, options):
+
+        maxTries = 3
+        for numTry in range(maxTries):
+            resultTarget = self._runTest(name, options.copy())
+
+            result = all(all(all(resultQuery[TEST.RESULT]
+                                 for resultQuery in resultVariant.values())
+                             for resultVariant in resultTest.values())
+                         for resultTest in resultTarget.values())
+
+            if result:
+                break
+            else:
+                print("Test %s.%s failed in during try #%d/%d.%s" %(
+                    options[NAME.CLASS], name, numTry + 1, maxTries,
+                    " Retrying ..." if numTry < maxTries - 1 else ""))
 
         return resultTarget
 
@@ -705,7 +728,7 @@ class Test(Worker):
 
     @verbosity.setter
     def verbosity(self, value):
-        if type(value) is bool:
+        if isinstance(value, bool):
             value=(value, )
 
         if isinstance(value, tuple):

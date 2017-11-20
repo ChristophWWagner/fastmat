@@ -48,13 +48,10 @@ import sys
 import inspect
 import os
 import argparse
-import importlib
 from pprint import pprint
 import time
 
 import numpy as np
-from scipy import io as spio
-from numbers import Number
 
 
 def importMatplotlib():
@@ -441,13 +438,13 @@ class Bee(CommandArgParser):
 
         for name, testWorker in tests.items():
             targetSet = testDependencies[name]
-            for nameTarget, target in testWorker.results.items():
+            for target in testWorker.results.values():
                 for nameTest, test in target.items():
                     if len(test) > 0:
                         aVariant = list(test.values())[0]
                         if len(aVariant) > 0:
                             aQuery = list(aVariant.values())[0]
-                            crawlContent(aQuery.get(TEST.INSTANCE, None),
+                            crawlContent(aQuery.get(TEST.INSTANCE, ()),
                                          targetSet)
 
         # filter out the containers themselves as they are obviousely the
@@ -526,10 +523,6 @@ class Bee(CommandArgParser):
         if self.args.interact and cntProblems > 0:
             # register signaling for graceful exit
             import atexit
-            try:
-                import matplotlib.pyplot as mpl
-            except ImportError:
-                pass
 
             def quitGracefully():
                 print("Leaving interactive testing session.")
